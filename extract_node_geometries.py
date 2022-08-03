@@ -6,9 +6,7 @@ import osmium
 
 import re
 
-# Qualifiers
-def poi_qualifier(tags):
-    return ('amenity' in tags or 'shop' in tags or 'tourism' in tags)
+from qualfiers import *
 
 class NodeHandler(osmium.SimpleHandler):
 
@@ -26,7 +24,7 @@ class NodeHandler(osmium.SimpleHandler):
         values = []
 
         for i in range(n):
-            qualifies = qualifier(self.tags[i]) # Callback function!!
+            qualifies = qualifier(self.tags[i], self.osm_type[i]) # Callback function!!
             if qualifies:
                 values.append([
                            self.id[i],
@@ -39,7 +37,6 @@ class NodeHandler(osmium.SimpleHandler):
         nodes = pd.DataFrame(values, columns=colnames)
         gdf = gpd.GeoDataFrame(nodes, geometry=gpd.points_from_xy(nodes.lon, nodes.lat), crs="EPSG:4326")
         gdf = gdf.drop(['lon','lat'], axis = 1)
-        gdf = gdf.to_crs('epsg:3395')
 
         return gdf
         

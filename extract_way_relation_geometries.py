@@ -3,16 +3,9 @@ import geopandas as gpd
 import numpy as np
 
 import osmium
-
 import re
 
-# Qualifiers
-def poi_qualifier(tags):
-    return ('amenity' in tags or 'shop' in tags or 'tourism' in tags)
-
-def building_qualifier(tags):
-   return ( ('building' in tags) or ('building:part' in tags) or (tags.get('type') == 'building') ) and ( (tags.get('location') != 'underground') or ('bridge' not in tags) )
-
+from qualfiers import * 
 
 class AreaHandler(osmium.SimpleHandler):
 
@@ -27,9 +20,8 @@ class AreaHandler(osmium.SimpleHandler):
     def get_gdf(self, qualifier):
         n = len(self.tags)
         id_, osm_type_, geometry_ = [], [], []
-
         for i in range(n):
-            qualifies = qualifier(self.tags[i]) # Callback function!!
+            qualifies = qualifier(self.tags[i], self.osm_type[i]) # Callback function!!
             if qualifies:
                 id_.append(self.id[i])
                 osm_type_.append(self.osm_type[i])
