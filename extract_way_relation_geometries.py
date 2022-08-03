@@ -3,47 +3,46 @@ import geopandas as gpd
 import numpy as np
 
 import osmium
+
 import re
 
 # Qualifiers
+def poi_qualifier(tags):
+    return ('amenity' in tags or 'shop' in tags or 'tourism' in tags)
+
 def building_qualifier(tags):
    return ( ('building' in tags) or ('building:part' in tags) or (tags.get('type') == 'building') ) and ( (tags.get('location') != 'underground') or ('bridge' not in tags) )
 
-def road_qualifier(tags):
-    return 'highway' in tags
-
-def poi_qualifier(tags):
-    return 'amenity' in tags
 
 class AreaHandler(osmium.SimpleHandler):
 
     def __init__(self):
         osmium.SimpleHandler.__init__(self)
         self.id = []
-        self.type = []
+        self.osm_type = []
         self.tags = []
         self.geometry = []
         self.wkbfab = osmium.geom.WKBFactory()
         
-    def get_buildings(self):
+    def get_gdf(self, qualifier):
         n = len(self.tags)
-        geom, iid, typ = [], [], []
+        id_, osm_type_, geometry_ = [], [], []
 
         for i in range(n):
-            qualifies = building_qualifier(self.tags[i]) # Callback Function!!
+            qualifies = qualifier(self.tags[i]) # Callback function!!
             if qualifies:
-                iid.append(self.geometry[i])
-                typ.append(self.type[i])
-                geom.append(self.id[i])
+                id_.append(self.id[i])
+                osm_type_.append(self.osm_type[i])
+                geometry_.append(self.geometry[i])
 
-        id = pd.Series(iid, dtype='UInt64')
-        type = pd.Series(typ, dtype='string')
-        geometry = gpd.GeoSeries.from_wkb(geom, crs='epsg:4326')
+        id = pd.Series(id_, dtype='UInt64')
+        osm_type = pd.Series(osm_type_, dtype='string')
+        geometry = gpd.GeoSeries.from_wkb(geometry_, crs='epsg:4326')
 
         return  gpd.GeoDataFrame({
             'id': id,
-            'geometry': geometry,
-            'type':  type
+            'osm_type':  osm_type,
+            'geometry': geometry
         }, index=geometry.index)
     
     def area(self, a):
@@ -52,10 +51,10 @@ class AreaHandler(osmium.SimpleHandler):
         
         try:
             self.id.append(id)
-            if (not a.from_way()): self.type.append('R')
-            else: self.type.append('W')
+            if (not a.from_way()): self.osm_type.append('R')
+            else: self.osm_type.append('W')
             self.tags.append(tags)
-            poly = self.wkbfab.create_multipolygon(a)     
+            poly = self.wkbfab.create_multipolygon(a) 
             self.geometry.append(poly)
             
         except Exception as e:
