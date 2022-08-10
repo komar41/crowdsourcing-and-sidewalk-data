@@ -6,3 +6,12 @@ def building_qualifier(tags, type):
 
 def road_qualifier(tags, type):
     return (type == 'W') and ('highway' in tags)
+
+def sidewalk_qualifier(tags, type):
+    return (type == 'W' and 'highway' in tags) and ('sidewalk' in tags or 'sidewalk' in tags.values() or \
+            'footpath' in tags or 'footpath' in tags.values() or \
+            'footway' in tags or 'footway' in tags.values())
+
+
+def sidewalk_qualifer_x(tags, type):
+    return (type == 'W' and 'highway' in tags) and ('footway' in tags or 'sidewalk' in tags.values())

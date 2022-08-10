@@ -6,7 +6,7 @@ from datetime import datetime
 
 from qualfiers import *
 
-def extract_features(df, qualifier):
+def extract_ii_features(df, qualifier): # rename extract_ii_features
    values = []
 
    mp = defaultdict(int)
@@ -29,11 +29,10 @@ def extract_features(df, qualifier):
          values.append([item_id,
                      users,
                      ts,
-                     tags,
                      osm_type])
 
 
-   colnames = ['id', 'nusers', 'ts', 'tags', 'osm_type']
+   colnames = ['id', 'nusers', 'ts', 'osm_type']
    df = pd.DataFrame(values, columns=colnames)
 
    return df
@@ -43,7 +42,7 @@ def diff_month(d1, d2):
     #  for difference in days: return (d1- d2).days
 
 
-def compute_ii_parameters(df): # ii -> indirect indicators
+def compute_ii_indicators(df): # ii -> indirect indicators
     
     if(not len(df.index)): element_cnt, user_cnt, last_edit_time = 0, 0, 0
     else:
