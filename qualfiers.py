@@ -19,25 +19,20 @@ def roads_with_sidewalk(tags, type):
         )
 
 def roads_without_sidewalk(tags, type):
-
-    case1, case2, case3 = True, True, True
-
-    if 'sidewalk' in tags: 
-        case1 = tags.get('sidewalk') in ['no', 'none']
-    
-    if 'sidewalk:left' in tags:
-        case2 = tags.get('sidewalk:left') in ['no', 'none']
-
-    if 'sidewalk:right' in tags:
-        case3 = tags.get('sidewalk:right') in ['no', 'none']
-
-    return eval(is_road) and (case1 and case2  and case3)
+    return eval(is_road) and \
+    (
+        ('sidewalk' in tags and tags.get('sidewalk') in ['no', 'none']) or
+        (('sidewalk:left' in tags and tags.get('sidewalk:left') in ['no', 'none'] and 'sidewalk:right' not in tags)) or
+        (('sidewalk:right' in tags and tags.get('sidewalk:right') in ['no', 'none'] and 'sidewalk:left' not in tags)) or
+        (('sidewalk:left' in tags and tags.get('sidewalk:left') in ['no', 'none']) and ('sidewalk:right' in tags and tags.get('sidewalk:right') in ['no', 'none']))
+    )
 
 def roads_without_sidewalk_tag(tags, type):
     return eval(is_road) and \
         (
             tags.get('highway') not in ['footway', 'escape', 'raceway', 'busway', 'bridleway', 'steps', 'corridor', 'path', 'cycleway', 'construction'] and
-            not roads_with_sidewalk(tags, type)
+            not roads_with_sidewalk(tags, type) and
+            not roads_without_sidewalk(tags, type)
         )
 
 def footway_qualifier(tags, type):\
