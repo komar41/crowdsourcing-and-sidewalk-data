@@ -1,4 +1,4 @@
-is_road = "(type == 'W') and ('highway' in tags)"
+is_highway = "(type == 'W') and ('highway' in tags)"
 
 def poi_qualifier(tags, type):
     return ('amenity' in tags or 'shop' in tags or 'tourism' in tags)
@@ -6,11 +6,11 @@ def poi_qualifier(tags, type):
 def building_qualifier(tags, type):
     return (type == 'W' or type == 'R') and ( ('building' in tags) or ('building:part' in tags) or (tags.get('type') == 'building') ) and ( (tags.get('location') != 'underground') or ('bridge' not in tags) )
 
-def road_qualifier(tags, type):
-    return eval(is_road)
+def highway_qualifier(tags, type):
+    return eval(is_highway)
 
-def roads_with_sidewalk(tags, type):
-    return eval(is_road) and \
+def highway_with_sidewalk(tags, type):
+    return eval(is_highway) and \
         ( 
             ('sidewalk' in tags and tags.get('sidewalk') in ['yes', 'left', 'right', 'both', 'separate']) or \
             ('sidewalk:left' in tags and tags.get('sidewalk:left') in ['yes', 'separate']) or \
@@ -18,8 +18,8 @@ def roads_with_sidewalk(tags, type):
             ('foot' in tags and tags.get('foot') == 'use_sidepath')
         )
 
-def roads_without_sidewalk(tags, type):
-    return eval(is_road) and \
+def highway_without_sidewalk(tags, type):
+    return eval(is_highway) and \
     (
         ('sidewalk' in tags and tags.get('sidewalk') in ['no', 'none']) or
         (('sidewalk:left' in tags and tags.get('sidewalk:left') in ['no', 'none'] and 'sidewalk:right' not in tags)) or
@@ -27,17 +27,17 @@ def roads_without_sidewalk(tags, type):
         (('sidewalk:left' in tags and tags.get('sidewalk:left') in ['no', 'none']) and ('sidewalk:right' in tags and tags.get('sidewalk:right') in ['no', 'none']))
     )
 
-def roads_without_sidewalk_tag(tags, type):
-    return eval(is_road) and \
+def highway_without_sidewalk_tag(tags, type):
+    return eval(is_highway) and \
         (
             tags.get('highway') not in ['footway', 'escape', 'raceway', 'busway', 'bridleway', 'steps', 'corridor', 'path', 'cycleway', 'construction'] and
-            not roads_with_sidewalk(tags, type) and
-            not roads_without_sidewalk(tags, type)
+            not highway_with_sidewalk(tags, type) and
+            not highway_without_sidewalk(tags, type)
         )
 
 def footway_qualifier(tags, type):\
 
-    return eval(is_road) and \
+    return eval(is_highway) and \
     (
             (tags.get('highway') in ['footway', 'living_street', 'pedestrian']) or
             ('foot' in tags and tags.get('foot') in ['yes', 'designated', 'permissive', 'private', 'destination'])
@@ -48,10 +48,10 @@ def footway_qualifier(tags, type):\
     '''
 
 def sidewalk_qualifer(tags, type):
-    return eval(is_road) and (tags.get('highway') == 'footway' and tags.get('footway')=='sidewalk')
+    return eval(is_highway) and (tags.get('highway') == 'footway' and tags.get('footway')=='sidewalk')
 
-def road_crossing_qualifer(tags, type):
-    return eval(is_road) and (tags.get('highway') == 'footway' and tags.get('footway')=='crossing')
+def highway_crossing_qualifer(tags, type):
+    return eval(is_highway) and (tags.get('highway') == 'footway' and tags.get('footway')=='crossing')
 
 def bridge_qualifier(tags, type):
-    return eval(is_road) and (tags.get('highway') == 'footway' and 'bridge' in tags)
+    return eval(is_highway) and (tags.get('highway') == 'footway' and 'bridge' in tags)
