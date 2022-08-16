@@ -4,7 +4,6 @@ import geopandas as gpd
 import osmium
 
 from util import *
-from qualfiers import * 
 
 class WayHandler(osmium.SimpleHandler, DefaultOsmium):
 

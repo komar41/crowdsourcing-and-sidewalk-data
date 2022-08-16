@@ -7,7 +7,6 @@ import osmium
 import re
 
 from util import *
-from qualfiers import * 
 
 class AreaHandler(osmium.SimpleHandler, DefaultOsmium):
 

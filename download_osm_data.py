@@ -5,8 +5,10 @@ from geopy.geocoders import Nominatim
 
 
 def download_osm_data(city_abb, input_file, bbox = [], geo_loc = None, history = False):
-    filename = 'data/osm/%s.osm.pbf'%(city_abb)
-    input_filename = 'data/osm/%s'%(input_file)
+    
+    folder = 'historical' if history else 'latest'
+    filename = 'data/osm/'+ folder +'/%s.osm.pbf'%(city_abb)
+    input_filename = 'data/osm/'+ folder +'/%s'%(input_file)
 
     if(geo_loc):
         geolocator = Nominatim(user_agent='uic')

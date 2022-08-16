@@ -5,8 +5,6 @@ import numpy as np
 import osmium
 
 from util import *
-from qualfiers import *
-
 
 class NodeHandler(osmium.SimpleHandler, DefaultOsmium):
 
