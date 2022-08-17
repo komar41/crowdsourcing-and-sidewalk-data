@@ -160,6 +160,6 @@ def extract_direct_indicators(qualifier, city = 'rec'):
 
 def get_stats(dir_ind):
     stats = dir_ind.describe()[['nversions', 'nusers', 'nedits', 'ntags', 'dir_confirmations', 'nrollbacks']]
-    stats = stats.filter(items = ['mean', '50%'], axis=0)
+    stats = stats.filter(items = ['mean', '25%', '50%'], axis=0)
 
     return stats
