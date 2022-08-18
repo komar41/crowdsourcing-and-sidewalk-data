@@ -1,4 +1,3 @@
-# This can also be a separate python module!! Tomorrow first thing!
 import osmium
 import pandas as pd
 
