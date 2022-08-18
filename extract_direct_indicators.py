@@ -3,7 +3,7 @@ import osmium
 import pandas as pd
 import numpy as np
 
-from util import sidewalk_qualifer
+from util import *
 from collections import defaultdict
 
 class RelationHandler(osmium.SimpleHandler):
@@ -75,12 +75,13 @@ def compute_direct_indicators(df, qualifier):
          num_users = all_versions['uid'].nunique() # Number of unique users contributing to per building
          num_versions = all_versions.iloc[n-1]['version'] # Number of versions of the building
          num_tags = all_versions.iloc[n-1]['ntags'] # Number of tags in the latest version of the building
-         visibility = "B" # visibility: D: deleted / NB: not building / B: building
+         visibility = 'V' # visibility: V: visible / C: Changed / D: Deleted
 
          deletion = 0
          addition = 0
          change = 0
          direct_confirmations = 0
+         latest_tags = dict()
 
          for i in range(1, n):
             
@@ -122,7 +123,10 @@ def compute_direct_indicators(df, qualifier):
 
             if(i == n-1):
                if(not cur['visible']): visibility = "D" # Deleted: if on the latest version -> no tags and no nodes
-               elif(not sidewalk_qualifer(cur_tags, item_type)): visibility = "NB" # Not Building: else if on the latest version -> no tags that qualify for a building
+               elif(not sidewalk_qualifer(cur_tags, item_type)): visibility = "C" # Not Building: else if on the latest version -> no tags that qualify for a building
+               latest_tags = cur_tags
+
+         if(n == 1): latest_tags = tags
 
          # Edits
          num_edits = deletion + addition + change
@@ -135,10 +139,11 @@ def compute_direct_indicators(df, qualifier):
                                  direct_confirmations,
                                  num_rollbacks,
                                  visibility,
+                                 latest_tags,
                                  item_type])
 
 
-   colnames = ['id', 'nversions', 'nusers', 'nedits', 'ntags', 'dir_confirmations', 'nrollbacks', 'visibility', 'type']
+   colnames = ['id', 'nversions', 'nusers', 'nedits', 'ntags', 'dir_confirmations', 'nrollbacks', 'visibility', 'tags', 'type']
    dir_ind = pd.DataFrame(direct_indicators, columns=colnames)
    
    return dir_ind
