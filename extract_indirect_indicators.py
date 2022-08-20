@@ -203,7 +203,7 @@ def extract_indirect_indicators(city = 'rec'):
 
     return indir_ind
 
-def get_stats(indir_ind):
+def get_stats_indir(indir_ind):
     stats = indir_ind.describe()[['road_cnt', 'road_uc', 'building_cnt', 'building_uc', 'building_le_time', 'poi_cnt', 'poi_uc', 'poi_le_time']]
     stats = stats.filter(items = ['mean', '25%', '50%'], axis=0)
 
