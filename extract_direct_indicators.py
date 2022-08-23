@@ -123,7 +123,7 @@ def compute_direct_indicators(df, qualifier):
 
             if(i == n-1):
                if(not cur['visible']): visibility = "D" # Deleted: if on the latest version -> no tags and no nodes
-               elif(not sidewalk_qualifer(cur_tags, item_type)): visibility = "C" # Not Building: else if on the latest version -> no tags that qualify for a building
+               elif(not qualifier(cur_tags, item_type)): visibility = "C" # Not Building: else if on the latest version -> no tags that qualify for a building
                latest_tags = cur_tags
 
          if(n == 1): latest_tags = tags

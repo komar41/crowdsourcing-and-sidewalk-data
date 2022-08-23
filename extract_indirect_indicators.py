@@ -63,14 +63,14 @@ def get_poi_indir(h, h_n, h_wr):
     return poi_indir
 
 def get_road_indir(h, h_roads):
-    data_road = h.get_data(highway_but_not_sidewalk)
+    data_road = h.get_data(highway_qualifier)
 
     colnames = ['id', 'visible', 'ts', 'uid', 'tags', 'osm_type']
     history = pd.DataFrame(data_road, columns=colnames)
     history = history.sort_values(by=['id', 'ts'])
 
-    road = extract_ii_features(history, highway_but_not_sidewalk)
-    road_geom = h_roads.get_gdf(highway_but_not_sidewalk)
+    road = extract_ii_features(history, highway_qualifier)
+    road_geom = h_roads.get_gdf(highway_qualifier)
 
     roads_indir = pd.merge(road, road_geom, how='inner', left_on=['id','osm_type'], right_on = ['id','osm_type'])
     roads_indir = gpd.GeoDataFrame(roads_indir, crs="EPSG:4326")
@@ -78,21 +78,21 @@ def get_road_indir(h, h_roads):
 
     return roads_indir
 
-def get_sidewalk_indir(h, h_roads):
-    data_road = h.get_data(sidewalk_qualifer)
+def get_target_indir(qualifier, h, h_roads):
+    data_road = h.get_data(qualifier)
 
     colnames = ['id', 'visible', 'ts', 'uid', 'tags', 'osm_type']
     history = pd.DataFrame(data_road, columns=colnames)
     history = history.sort_values(by=['id', 'ts'])
 
-    sidewalk = extract_ii_features(history, sidewalk_qualifer)
-    sidewalk_geom = h_roads.get_gdf(sidewalk_qualifer)
+    target = extract_ii_features(history, qualifier)
+    target_geom = h_roads.get_gdf(qualifier)
 
-    sidewalk_indir = pd.merge(sidewalk, sidewalk_geom, how='inner', left_on=['id','osm_type'], right_on = ['id','osm_type'])
-    sidewalk_indir = gpd.GeoDataFrame(sidewalk_indir, crs="EPSG:4326")
-    sidewalk_indir['item_type'] = 'sidewalk'
+    target_indir = pd.merge(target, target_geom, how='inner', left_on=['id','osm_type'], right_on = ['id','osm_type'])
+    target_indir = gpd.GeoDataFrame(target_indir, crs="EPSG:4326")
+    target_indir['item_type'] = 'target'
 
-    return sidewalk_indir
+    return target_indir
 
 def get_building_indir(h, h_wr):
     data = h.get_data(building_qualifier)
@@ -113,7 +113,6 @@ def get_building_indir(h, h_wr):
 def diff_month(d1, d2):
     return (d1.year - d2.year) * 12 + d1.month - d2.month
     #  for difference in days: return (d1- d2).days
-
 
 def compute_indirect_indicators(df): # ii -> indirect indicators
     
@@ -146,7 +145,7 @@ def compute_cells(gdf):
     cell_width = cell_height = size
 
     indir_indicators = []
-
+    mp = defaultdict(int)
     for x0 in np.arange(xmin, xmax+cell_width, cell_width):
         for y0 in np.arange(ymin, ymax+cell_height, cell_height):
             x1 = x0+cell_width
@@ -164,34 +163,48 @@ def compute_cells(gdf):
             pois = cell[cell['item_type'] == 'poi']
             poi_cnt, poi_uc, poi_le_time = compute_indirect_indicators(pois)
 
-            sidewalks = cell[cell['item_type'] == 'sidewalk']
-            sidewalk_cnt, sidewalk_uc, sidewalk_le_time = compute_indirect_indicators(sidewalks)
+            targets = cell[cell['item_type'] == 'target']
+            target_cnt, target_uc, target_le_time = compute_indirect_indicators(targets)
+  
+            for item in targets.to_numpy():
+                if(not mp[item[0]]):
+                    mp[item[0]] = 1
+                    indir_indicators.append([
+                                            item[0], 
+                                            road_cnt, 
+                                            road_uc, 
+                                            road_le_time, 
+                                            building_cnt, 
+                                            building_uc, 
+                                            building_le_time, 
+                                            poi_cnt, 
+                                            poi_uc, 
+                                            poi_le_time,
+                                            target_cnt,
+                                            target_uc,
+                                            target_le_time
+                                            ])
 
-            
-            for item in sidewalks.to_numpy():
-                indir_indicators.append([
-                                        item[0], 
-                                        road_cnt, 
-                                        road_uc, 
-                                        road_le_time, 
-                                        building_cnt, 
-                                        building_uc, 
-                                        building_le_time, 
-                                        poi_cnt, 
-                                        poi_uc, 
-                                        poi_le_time,
-                                        sidewalk_cnt,
-                                        sidewalk_uc,
-                                        sidewalk_le_time
-                                        ])
+    colnames = ['id', 
+                'road_cnt', 
+                'road_uc', 
+                'road_le_time', 
+                'building_cnt', 
+                'building_uc', 
+                'building_le_time', 
+                'poi_cnt', 
+                'poi_uc', 
+                'poi_le_time', 
+                'target_cnt', 
+                'target_uc', 
+                'target_le_time']
 
-    colnames = ['id', 'road_cnt', 'road_uc', 'road_le_time', 'building_cnt', 'building_uc', 'building_le_time', 'poi_cnt', 'poi_uc', 'poi_le_time', 'sidewalk_cnt', 'sidewalk_uc', 'sidewalk_le_time']
     indir = pd.DataFrame(indir_indicators, columns=colnames)
 
     return indir
 
 
-def extract_indirect_indicators(city = 'rec'):
+def extract_indirect_indicators(qualifier, city = 'rec'):
 
     h = HistoryHandler()
     h.apply_file('data/osm/historical/'+ city + '_historical.osm.pbf')
@@ -208,9 +221,11 @@ def extract_indirect_indicators(city = 'rec'):
     poi_indir = get_poi_indir(h, h_n, h_wr)
     roads_indir = get_road_indir(h, h_roads)
     building_indir = get_building_indir(h, h_wr)
-    sidewalk_indir = get_sidewalk_indir(h, h_roads)
+    # sidewalk_indir = get_sidewalk_indir(h, h_roads)
+    # with_sidewalk_tag_indir = highway_with_sidewalk_tag(h, h_roads)
+    target_type_indir = get_target_indir(qualifier, h, h_roads)
 
-    gdf = pd.concat([building_indir, roads_indir, poi_indir, sidewalk_indir])
+    gdf = pd.concat([building_indir, roads_indir, poi_indir, target_type_indir])
     gdf = gdf.reset_index(drop=True)
     gdf = gpd.GeoDataFrame(gdf, crs="EPSG:4326")
     gdf = gdf.to_crs('epsg:3395')
@@ -220,7 +235,7 @@ def extract_indirect_indicators(city = 'rec'):
     return indir_ind
 
 def get_stats_indir(indir_ind):
-    stats = indir_ind.describe()[['road_cnt', 'road_uc', 'road_le_time', 'building_cnt', 'building_uc', 'building_le_time', 'poi_cnt', 'poi_uc', 'poi_le_time', 'sidewalk_cnt', 'sidewalk_uc', 'sidewalk_le_time']]
+    stats = indir_ind.describe()[['road_cnt', 'road_uc', 'road_le_time', 'building_cnt', 'building_uc', 'building_le_time', 'poi_cnt', 'poi_uc', 'poi_le_time', 'target_cnt', 'target_uc', 'target_le_time']]
     stats = stats.filter(items = ['mean', '25%', '50%'], axis=0)
 
     return stats
