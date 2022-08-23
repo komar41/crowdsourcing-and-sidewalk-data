@@ -52,6 +52,9 @@ def building_qualifier(tags, type):
 def highway_qualifier(tags, type):
     return eval(is_highway)
 
+def highway_but_not_sidewalk(tags, type):
+    return eval(is_highway) and (not (tags.get('highway') == 'footway' and tags.get('footway')=='sidewalk'))
+
 def highway_with_sidewalk(tags, type):
     return eval(is_highway) and \
         ( 
