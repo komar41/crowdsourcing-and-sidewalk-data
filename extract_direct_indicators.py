@@ -14,11 +14,14 @@ class RelationHandler(osmium.SimpleHandler):
         
     def relation(self, r):
         tags = dict(r.tags)
-        ways_list = []
+        members_list = []
+        
+        for member in r.members:
+            members_list.append( (member.ref, member.type, member.role) )
 
         self.history_relation.append([
                                 r.id,
-                                ways_list,
+                                members_list,
                                 r.version,
                                 r.visible,
                                 pd.Timestamp(r.timestamp),
@@ -36,14 +39,14 @@ class WayHandler(osmium.SimpleHandler):
         
     def way(self, w):
         tags = dict(w.tags)
-        nodes_list = []
+        members_list = []
 
         for i in list(w.nodes):
-            nodes_list.append(i.ref)
+            members_list.append( (i.ref, 'n') )
         
         self.history_way.append([
                                 w.id,
-                                nodes_list,
+                                members_list,
                                 w.version,
                                 w.visible,
                                 pd.Timestamp(w.timestamp),
@@ -91,8 +94,8 @@ def compute_direct_indicators(df, qualifier):
             prev_tags = prev['tags']
             cur_tags = cur['tags']
 
-            prev_n_w = prev['nodes/ways']
-            cur_n_w = cur['nodes/ways']
+            prev_n_w = prev['members']
+            cur_n_w = cur['members']
 
             prev_uid = prev['uid']
             cur_uid = cur['uid']
@@ -101,7 +104,7 @@ def compute_direct_indicators(df, qualifier):
             # If the geometry or the tags of cur does not match with the prev, check if it matches with any other previous versions. If so, count it as a rollback.
             if(cur_n_w != prev_n_w or cur_tags != prev_tags):
                for k in range(i-1):
-                  if(cur_n_w == all_versions.iloc[k]['nodes/ways'] and cur_tags == all_versions.iloc[k]['tags']):
+                  if(cur_n_w == all_versions.iloc[k]['members'] and cur_tags == all_versions.iloc[k]['tags']):
                      num_rollbacks += 1
 
             # Direct Confirmations:         
@@ -156,7 +159,7 @@ def extract_direct_indicators(qualifier, city = 'rec'):
     h_w = WayHandler()
     h_w.apply_file("data/osm/historical/" + city + "_historical.osm.pbf")
 
-    colnames = ['id', 'nodes/ways', 'version', 'visible', 'ts', 'uid', 'chgset', 'ntags', 'tags', 'type']
+    colnames = ['id', 'members', 'version', 'visible', 'ts', 'uid', 'chgset', 'ntags', 'tags', 'type']
     history = pd.DataFrame(h_r.history_relation + h_w.history_way, columns=colnames)
     history = history.sort_values(by=['id', 'ts'])
 
