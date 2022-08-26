@@ -20,13 +20,15 @@ class LatestHandler(osmium.SimpleHandler):
         osm_type = pd.Series([row[2] for row in data], dtype='string')
         subtype = pd.Series([row[3] for row in data], dtype='string')
         geometry = gpd.GeoSeries.from_wkb([row[4] for row in data], crs='epsg:4326')
+        ts = pd.Series([row[5] for row in data]).dt.tz_localize(None)
 
         return gpd.GeoDataFrame({
             'id': id,
             'tags': tags,
             'osm_type':  osm_type,
             'subtype': subtype,
-            'geometry': geometry
+            'geometry': geometry,
+            'ts': ts
         })
 
     def filter_data(self, qualifier):
@@ -44,7 +46,8 @@ class LatestHandler(osmium.SimpleHandler):
                 tags,       # Tag
                 'N',        # OSM Type
                 'Nodes',    # Subtype
-                point       # Geometry
+                point,      # Geometry
+                pd.Timestamp(n.timestamp)
             ])
             
         except Exception as e:
@@ -64,7 +67,8 @@ class LatestHandler(osmium.SimpleHandler):
                     tags,       # Tags
                     'W',        # OSM Type
                     'Highway',  # Subtype
-                    line        # Geometry
+                    line,       # Geometry
+                    pd.Timestamp(w.timestamp)
                 ])
                 
             except Exception as e:
@@ -84,7 +88,8 @@ class LatestHandler(osmium.SimpleHandler):
                     tags,             # Tags
                     osm_type,         # OSM Type
                     'Multipolygons',  # Subtype
-                    poly              # Geometry
+                    poly,             # Geometry
+                    pd.Timestamp(a.timestamp)
                 ])
             
             except Exception as e:
