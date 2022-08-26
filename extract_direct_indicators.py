@@ -1,60 +1,7 @@
-import osmium
-
-import pandas as pd
-import numpy as np
-
-from util import *
 from collections import defaultdict
 
-class RelationHandler(osmium.SimpleHandler):
-
-    def __init__(self):
-        osmium.SimpleHandler.__init__(self)
-        self.history_relation = []
-        
-    def relation(self, r):
-        tags = dict(r.tags)
-        members_list = []
-        
-        for member in r.members:
-            members_list.append( (member.ref, member.type, member.role) )
-
-        self.history_relation.append([
-                                r.id,
-                                members_list,
-                                r.version,
-                                r.visible,
-                                pd.Timestamp(r.timestamp),
-                                r.uid,
-                                r.changeset,
-                                len(r.tags),
-                                tags,
-                                'R'])
-
-class WayHandler(osmium.SimpleHandler):
-
-    def __init__(self):
-        osmium.SimpleHandler.__init__(self)
-        self.history_way = []
-        
-    def way(self, w):
-        tags = dict(w.tags)
-        members_list = []
-
-        for i in list(w.nodes):
-            members_list.append( (i.ref, 'n') )
-        
-        self.history_way.append([
-                                w.id,
-                                members_list,
-                                w.version,
-                                w.visible,
-                                pd.Timestamp(w.timestamp),
-                                w.uid,
-                                w.changeset,
-                                len(w.tags),
-                                tags,
-                                'W'])
+from util import *
+from extract_history_data import *
 
 def compute_direct_indicators(df, qualifier):
    direct_indicators = []
@@ -151,16 +98,11 @@ def compute_direct_indicators(df, qualifier):
    
    return dir_ind
 
-def extract_direct_indicators(qualifier, city = 'rec'):
+def extract_direct_indicators(qualifier, city = 'rec'): # pass h by parameter
 
-    h_r = RelationHandler()
-    h_r.apply_file("data/osm/historical/" + city + "_historical.osm.pbf")
-
-    h_w = WayHandler()
-    h_w.apply_file("data/osm/historical/" + city + "_historical.osm.pbf")
-
-    colnames = ['id', 'members', 'version', 'visible', 'ts', 'uid', 'chgset', 'ntags', 'tags', 'type']
-    history = pd.DataFrame(h_r.history_relation + h_w.history_way, columns=colnames)
+    h = HistoryHandler()
+    h.read_parsed_data(city) # Load it in compute trustworthiness once and then use for dir and indir ind
+    history = h.get_df(h.history)
     history = history.sort_values(by=['id', 'ts'])
 
     dir_ind = compute_direct_indicators(history, qualifier)

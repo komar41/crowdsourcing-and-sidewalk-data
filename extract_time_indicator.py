@@ -1,4 +1,4 @@
-from extract_history_data import *
+from extract_history_data_2 import *
 from util import *
 from datetime import datetime
 import pandas as pd
@@ -6,13 +6,12 @@ import pandas as pd
 def diff_month(d1, d2):
     return (d1.year - d2.year) * 12 + d1.month - d2.month
 
-def extract_time_indicator(qualifier, city = 'rec'):
-    data = HistoryHandler()
-    data.apply_file("data/osm/latest/" + city + ".osm.pbf")
+def extract_time_indicator(qualifier, city = 'rec'): # h as parameter
+    h = HistoryHandler()
+    h.apply_file("data/osm/latest/" + city + ".osm.pbf")
 
-    sidewalk = data.get_data(qualifier)
-    colnames = ['id', 'visible', 'ts', 'uid', 'tags', 'osm_type']
-    time = pd.DataFrame(sidewalk, columns=colnames)
+    filtered = h.filter_data(qualifier)
+    time = h.get_df(filtered)[['id', 'visible', 'ts', 'uid', 'tags', 'osm_type']]
     time = time.sort_values(by=['id', 'ts'])
 
     time = time[['id','ts']]

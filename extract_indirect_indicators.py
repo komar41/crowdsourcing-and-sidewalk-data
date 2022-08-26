@@ -1,19 +1,13 @@
 import geopandas as gpd
-from shapely.geometry import box
-import pyrosm
-
 import pandas as pd
-import numpy as np
 from datetime import datetime
 from collections import defaultdict
 
 from util import *
 from extract_history_data import *
-from extract_points import *
-from extract_multipolygons import *
-from extract_linestrings import *
+from extract_latest_data import *
 
-def extract_ii_features(df, qualifier): # rename extract_ii_features
+def process_history_features(df, qualifier): # rename extract_ii_features
    values = []
 
    mp = defaultdict(int)
@@ -44,71 +38,21 @@ def extract_ii_features(df, qualifier): # rename extract_ii_features
 
    return df
 
-def get_poi_indir(h, h_n, h_wr):
-    data_poi = h.get_data(poi_qualifier)
-    colnames = ['id', 'visible', 'ts', 'uid', 'tags', 'osm_type']
-    history = pd.DataFrame(data_poi, columns=colnames)
-    history = history.sort_values(by=['id', 'ts'])
+def merge_history_geom(h, l, qualifier, item_type):
+    filtered = h.filter_data(qualifier)
+    df = h.get_df(filtered)[['id', 'visible', 'ts', 'uid', 'tags', 'osm_type']]
+    df = df.sort_values(by=['id', 'ts'])
+    
+    history = process_history_features(df, qualifier)
+    
+    filtered = l.filter_data(qualifier)
+    geom = l.get_gdf(filtered)
 
-    poi = extract_ii_features(history, poi_qualifier)
+    merged = pd.merge(history, geom,  how='inner', left_on=['id','osm_type'], right_on = ['id','osm_type'])
+    merged = gpd.GeoDataFrame(merged, crs="EPSG:4326")
+    merged['item_type'] = item_type
 
-    poi_n = h_n.get_gdf(poi_qualifier)
-    poi_wr = h_wr.get_gdf(poi_qualifier)
-
-    poi_geom = pd.concat([poi_n, poi_wr])
-    poi_indir = pd.merge(poi, poi_geom,  how='inner', left_on=['id','osm_type'], right_on = ['id','osm_type'])
-    poi_indir = gpd.GeoDataFrame(poi_indir, crs="EPSG:4326")
-    poi_indir['item_type'] = 'poi'
-
-    return poi_indir
-
-def get_road_indir(h, h_roads):
-    data_road = h.get_data(highway_qualifier)
-
-    colnames = ['id', 'visible', 'ts', 'uid', 'tags', 'osm_type']
-    history = pd.DataFrame(data_road, columns=colnames)
-    history = history.sort_values(by=['id', 'ts'])
-
-    road = extract_ii_features(history, highway_qualifier)
-    road_geom = h_roads.get_gdf(highway_qualifier)
-
-    roads_indir = pd.merge(road, road_geom, how='inner', left_on=['id','osm_type'], right_on = ['id','osm_type'])
-    roads_indir = gpd.GeoDataFrame(roads_indir, crs="EPSG:4326")
-    roads_indir['item_type'] = 'road'
-
-    return roads_indir
-
-def get_target_indir(qualifier, h, h_roads):
-    data_road = h.get_data(qualifier)
-
-    colnames = ['id', 'visible', 'ts', 'uid', 'tags', 'osm_type']
-    history = pd.DataFrame(data_road, columns=colnames)
-    history = history.sort_values(by=['id', 'ts'])
-
-    target = extract_ii_features(history, qualifier)
-    target_geom = h_roads.get_gdf(qualifier)
-
-    target_indir = pd.merge(target, target_geom, how='inner', left_on=['id','osm_type'], right_on = ['id','osm_type'])
-    target_indir = gpd.GeoDataFrame(target_indir, crs="EPSG:4326")
-    target_indir['item_type'] = 'target'
-
-    return target_indir
-
-def get_building_indir(h, h_wr):
-    data = h.get_data(building_qualifier)
-
-    colnames = ['id', 'visible', 'ts', 'uid', 'tags', 'osm_type']
-    history = pd.DataFrame(data, columns=colnames)
-    history = history.sort_values(by=['id', 'ts'])
-
-    building = extract_ii_features(history, building_qualifier)
-    building_geom = h_wr.get_gdf(building_qualifier)
-
-    building_indir = pd.merge(building, building_geom,  how='inner', on = ['id', 'osm_type'])
-    building_indir = gpd.GeoDataFrame(building_indir, crs="EPSG:4326")
-    building_indir['item_type'] = 'building'
-
-    return building_indir
+    return merged
 
 def diff_month(d1, d2):
     return (d1.year - d2.year) * 12 + d1.month - d2.month
@@ -138,7 +82,6 @@ def compute_indirect_indicators(df): # ii -> indirect indicators
     return element_cnt, user_cnt, last_edit_time
 
 def compute_cells(gdf):
-    # Have to make one more consideration: if one building can be part of multiple cell. Do check that tomorrow!!
 
     size = 1000
     xmin, ymin, xmax, ymax= gdf.total_bounds
@@ -204,28 +147,20 @@ def compute_cells(gdf):
     return indir
 
 
-def extract_indirect_indicators(qualifier, city = 'rec'):
+def extract_indirect_indicators(qualifier, city = 'rec'): # Pass h and l as parameters
 
     h = HistoryHandler()
-    h.apply_file('data/osm/historical/'+ city + '_historical.osm.pbf')
+    h.read_parsed_data(city) # Load it in compute trustworthiness once and then use for dir and indir ind
 
-    h_n = NodeHandler()
-    h_n.apply_file('data/osm/latest/'+ city + '.osm.pbf')
+    l = LatestHandler()
+    l.read_parsed_data(city)
 
-    h_wr = AreaHandler()
-    h_wr.apply_file('data/osm/latest/'+ city + '.osm.pbf')
+    poi = merge_history_geom(h, l, poi_qualifier, 'poi')
+    road = merge_history_geom(h, l, highway_qualifier, 'road')
+    building = merge_history_geom(h, l, building_qualifier, 'building')
+    target_type_indir = merge_history_geom(h, l, qualifier, 'target')
 
-    h_roads = WayHandler()
-    h_roads.apply_file('data/osm/latest/'+ city + '.osm.pbf', locations = True)
-
-    poi_indir = get_poi_indir(h, h_n, h_wr)
-    roads_indir = get_road_indir(h, h_roads)
-    building_indir = get_building_indir(h, h_wr)
-    # sidewalk_indir = get_sidewalk_indir(h, h_roads)
-    # with_sidewalk_tag_indir = highway_with_sidewalk_tag(h, h_roads)
-    target_type_indir = get_target_indir(qualifier, h, h_roads)
-
-    gdf = pd.concat([building_indir, roads_indir, poi_indir, target_type_indir])
+    gdf = pd.concat([building, road, poi, target_type_indir])
     gdf = gdf.reset_index(drop=True)
     gdf = gpd.GeoDataFrame(gdf, crs="EPSG:4326")
     gdf = gdf.to_crs('epsg:3395')

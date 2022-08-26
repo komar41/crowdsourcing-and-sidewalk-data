@@ -1,53 +1,13 @@
-import osmium
-import pandas as pd
-import geopandas as gpd
-
-class DefaultOsmium():
-
-    def __init__(self):
-        self.id = []
-        self.tags = []
-        self.osm_type = []
-        self.geometry = []
-        self.wkbfab = osmium.geom.WKBFactory()
-
-
-    def get_gdf(self, qualifier):
-        n = len(self.tags)
-        id_, tags_, osm_type_, geometry_ = [], [], [], []
-        for i in range(n):
-            qualifies = qualifier(self.tags[i], self.osm_type[i]) # Callback function!!
-            if qualifies:
-                id_.append(self.id[i])
-                tags_.append(self.tags[i])
-                osm_type_.append(self.osm_type[i])
-                geometry_.append(self.geometry[i])
-
-        id = pd.Series(id_, dtype='UInt64')
-        tags = pd.Series(tags_)
-        osm_type = pd.Series(osm_type_, dtype='string')
-        geometry = gpd.GeoSeries.from_wkb(geometry_, crs='epsg:4326')
-
-        return  gpd.GeoDataFrame({
-            'id': id,
-            'tags': tags,
-            'osm_type':  osm_type,
-            'geometry': geometry
-        })
-
-
-
 '''
 Filters for different types of osm data
 '''
-
-is_highway = "(type == 'W') and ('highway' in tags)"
-
 def poi_qualifier(tags, type):
     return ('amenity' in tags or 'shop' in tags or 'tourism' in tags)
 
 def building_qualifier(tags, type):
     return (type == 'W' or type == 'R') and ( ('building' in tags) or ('building:part' in tags) or (tags.get('type') == 'building') ) and ( (tags.get('location') != 'underground') or ('bridge' not in tags) )
+
+is_highway = "(type == 'W') and ('highway' in tags)"
 
 def highway_qualifier(tags, type):
     return eval(is_highway)
@@ -87,8 +47,7 @@ def highway_without_sidewalk_tag(tags, type):
             not highway_without_sidewalk(tags, type)
         )
 
-def footway_qualifier(tags, type):\
-
+def footway_qualifier(tags, type):
     return eval(is_highway) and \
     (
             (tags.get('highway') in ['footway', 'living_street', 'pedestrian']) or
