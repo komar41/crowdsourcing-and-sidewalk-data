@@ -5,5 +5,5 @@ data/
 misc/
 .ipynb_checkpoints
 __pycache__
-
+paper/
 test_code.ipynb
