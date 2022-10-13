@@ -6,4 +6,5 @@ misc/
 .ipynb_checkpoints
 __pycache__
 paper/
+presentation/
 test_code.ipynb
