@@ -60,6 +60,7 @@ class LatestHandler(osmium.SimpleHandler):
         
         # print(id)
         if('highway' in tags):
+            print(str(w.nodes[0]))
             try:
                 line = self.wkbfab.create_linestring(w)
                 self.latest.append([

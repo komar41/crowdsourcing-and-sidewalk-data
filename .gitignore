@@ -8,3 +8,5 @@ __pycache__
 paper/
 presentation/
 test_code.ipynb
+
+envs/
